@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vynk — AI Social Media Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&family=Cabinet+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS — Charcoal Brown + Glass
+═══════════════════════════════════════════ */
+:root {
+  --brown-950: #0a0806;
+  --brown-900: #100d0a;
+  --brown-800: #1a1510;
+  --brown-700: #221c16;
+  --brown-600: #2d2520;
+  --brown-500: #3d3028;
+  --brown-400: #5a4a3f;
+  --brown-300: #7a6558;
+  --brown-200: #a89080;
+  --brown-100: #d4c4b8;
+
+  --amber:     #c9933a;
+  --amber-light: #e8b868;
+  --amber-glow: rgba(201,147,58,.18);
+  --amber-border: rgba(201,147,58,.22);
+
+  --gold:      #f0c060;
+  --emerald:   #4ecb8d;
+  --rose:      #e8647a;
+  --sky:       #5ba8d8;
+  --fb-blue:   #1877f2;
+
+  --text:      #ede4db;
+  --text-soft: #b8a898;
+  --text-muted:#6b5e54;
+
+  --glass-bg:     rgba(22, 17, 13, 0.72);
+  --glass-bg2:    rgba(30, 23, 17, 0.60);
+  --glass-border: rgba(201,147,58,.14);
+  --glass-hover:  rgba(201,147,58,.08);
+
+  --blur: blur(24px);
+  --blur-sm: blur(12px);
+
+  --font:  'Cabinet Grotesk', sans-serif;
+  --serif: 'Playfair Display', serif;
+  --mono:  'JetBrains Mono', monospace;
+
+  --r:    14px;
+  --r-lg: 20px;
+  --r-sm: 8px;
+
+  --shadow: 0 8px 32px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
+  --shadow-amber: 0 0 40px rgba(201,147,58,.12);
+  --sidebar-w: 260px;
+}
+
+/* ── RESET ── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box }
+html { font-size: 16px }
+body {
+  background: var(--brown-950);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND TEXTURE ── */
+body::before {
+  content:'';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(201,147,58,.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(78,203,141,.04) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ════════════════════════════════════════
+   AUTH SCREEN
+════════════════════════════════════════ */
+#auth-screen {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--brown-950);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn .4s ease;
+}
+#auth-screen::before {
+  content:'';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 30% 40%, rgba(201,147,58,.09) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 70% 70%, rgba(78,203,141,.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.auth-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: min(900px, 95vw);
+  min-height: 560px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow), var(--shadow-amber);
+  backdrop-filter: var(--blur);
+  position: relative; z-index: 1;
+  animation: slideUp .5s cubic-bezier(.22,1,.36,1);
+}
+
+@keyframes slideUp {
+  from { opacity:0; transform: translateY(24px) }
+  to   { opacity:1; transform: translateY(0) }
+}
+@keyframes fadeIn {
+  from { opacity:0 } to { opacity:1 }
+}
+
+.auth-left {
+  padding: 52px 48px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background: linear-gradient(145deg, rgba(201,147,58,.10) 0%, rgba(30,23,17,.4) 100%);
+  border-right: 1px solid var(--glass-border);
+  position: relative; overflow: hidden;
+}
+.auth-left::before {
+  content:'';
+  position: absolute; top:-60px; left:-60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(201,147,58,.15), transparent 70%);
+  pointer-events: none;
+}
+
+.auth-brand {
+  font-family: var(--serif);
+  font-size: 42px; font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.auth-brand span { color: var(--amber) }
+
+.auth-tagline {
+  font-family: var(--mono);
+  font-size: 11px; color: var(--text-muted);
+  margin-top: 10px; letter-spacing: .1em;
+}
+
+.auth-features {
+  display: flex; flex-direction: column; gap: 16px;
+  margin-top: 40px;
+}
+.feat {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 13.5px; color: var(--text-soft);
+  animation: fadeInLeft .5s ease both;
+}
+.feat:nth-child(1){animation-delay:.1s}
+.feat:nth-child(2){animation-delay:.2s}
+.feat:nth-child(3){animation-delay:.3s}
+.feat:nth-child(4){animation-delay:.4s}
+@keyframes fadeInLeft {
+  from { opacity:0; transform:translateX(-12px) }
+  to   { opacity:1; transform:translateX(0) }
+}
+
+.feat-ic {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  background: var(--amber-glow);
+  border: 1px solid var(--amber-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  box-shadow: 0 0 20px rgba(201,147,58,.1);
+}
+
+.auth-right {
+  padding: 52px 48px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+
+.auth-title {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 600;
+  margin-bottom: 4px; color: var(--text);
+}
+.auth-sub {
+  font-family: var(--mono);
+  font-size: 11px; color: var(--text-muted);
+  margin-bottom: 28px; letter-spacing: .06em;
+}
+
+.tabs {
+  display: flex;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px; padding: 4px; gap: 4px;
+  margin-bottom: 24px;
+}
+.tab {
+  flex:1; padding: 9px; text-align: center;
+  border: none; background: none;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  color: var(--text-muted); border-radius: 7px; cursor: pointer;
+  transition: all .25s;
+}
+.tab.on {
+  background: var(--amber);
+  color: var(--brown-950);
+  box-shadow: 0 2px 12px rgba(201,147,58,.35);
+}
+
+.field { margin-bottom: 16px }
+.field label {
+  display: block; font-family: var(--mono);
+  font-size: 10px; color: var(--text-muted);
+  margin-bottom: 6px; letter-spacing: .1em;
+}
+.field input {
+  width: 100%; padding: 12px 16px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px; color: var(--text);
+  font-size: 14px; font-family: var(--mono); outline: none;
+  transition: all .25s;
+}
+.field input:focus {
+  border-color: var(--amber-border);
+  background: rgba(201,147,58,.05);
+  box-shadow: 0 0 0 3px rgba(201,147,58,.08);
+}
+
+.btn-main {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--amber), #b07e28);
+  border: none; border-radius: 10px;
+  color: var(--brown-950); font-size: 14px; font-weight: 700;
+  font-family: var(--font); cursor: pointer;
+  transition: all .25s; letter-spacing: .02em;
+  box-shadow: 0 4px 20px rgba(201,147,58,.3);
+}
+.btn-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(201,147,58,.4);
+}
+.btn-main:active { transform: translateY(0) }
+
+.auth-err {
+  color: var(--rose); font-family: var(--mono);
+  font-size: 11px; text-align: center;
+  margin-top: 10px; min-height: 16px;
+}
+
+/* ════════════════════════════════════════
+   APP SHELL
+════════════════════════════════════════ */
+#app { display: none; position: relative; z-index: 1 }
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════════ */
+.side {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur);
+  border-right: 1px solid var(--glass-border);
+  padding: 24px 14px;
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+  animation: sideIn .4s cubic-bezier(.22,1,.36,1);
+}
+@keyframes sideIn {
+  from { opacity:0; transform:translateX(-16px) }
+  to   { opacity:1; transform:translateX(0) }
+}
+
+.logo {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 700;
+  padding: 6px 12px 24px;
+  letter-spacing: -.5px;
+}
+.logo span { color: var(--amber) }
+
+.slabel {
+  font-family: var(--mono);
+  font-size: 9px; color: var(--text-muted);
+  padding: 12px 12px 6px;
+  letter-spacing: .18em;
+}
+
+.nav {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  cursor: pointer; font-size: 13.5px; font-weight: 600;
+  color: var(--text-muted);
+  transition: all .2s; border: none; background: none;
+  width: 100%; text-align: left; font-family: var(--font);
+  margin-bottom: 2px; position: relative;
+}
+.nav:hover {
+  background: var(--glass-hover);
+  color: var(--text);
+}
+.nav.on {
+  background: var(--amber-glow);
+  color: var(--amber);
+  border: 1px solid var(--amber-border);
+}
+.nav.on::before {
+  content:'';
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 60%; background: var(--amber);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-ic {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+  background: rgba(255,255,255,.04);
+  transition: all .2s;
+}
+.nav.on .nav-ic {
+  background: var(--amber-glow);
+}
+
+.side-foot {
+  margin-top: auto;
+  border-top: 1px solid var(--glass-border);
+  padding-top: 16px;
+}
+.user-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; margin-bottom: 10px;
+}
+.ava {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--amber), #7a3010);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff;
+  box-shadow: 0 0 16px rgba(201,147,58,.3);
+}
+.uinfo { flex:1; min-width:0 }
+.uname {
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.uemail {
+  font-size: 11px; font-family: var(--mono);
+  color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.plan-tag {
+  font-size: 9px; padding: 2px 8px; border-radius: 20px;
+  font-family: var(--mono); font-weight: 600;
+  letter-spacing: .06em;
+}
+.p-basic  { background: rgba(107,94,84,.2);  color: var(--text-muted) }
+.p-pro    { background: var(--amber-glow);   color: var(--amber) }
+.p-agency { background: rgba(78,203,141,.1); color: var(--emerald) }
+
+.btn-logout {
+  width: 100%; padding: 8px; background: none;
+  border: 1px solid var(--glass-border);
+  border-radius: 9px; color: var(--text-muted);
+  font-size: 12px; cursor: pointer; font-family: var(--font);
+  transition: all .2s;
+}
+.btn-logout:hover {
+  border-color: var(--rose); color: var(--rose);
+  background: rgba(232,100,122,.05);
+}
+
+/* ════════════════════════════════════════
+   MAIN CONTENT
+════════════════════════════════════════ */
+.main {
+  padding: 36px 40px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.page { display: none }
+.page.on {
+  display: block;
+  animation: pageIn .35s cubic-bezier(.22,1,.36,1);
+}
+@keyframes pageIn {
+  from { opacity:0; transform:translateY(12px) }
+  to   { opacity:1; transform:translateY(0) }
+}
+
+.ph {
+  display: flex; align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+.ptitle {
+  font-family: var(--serif);
+  font-size: 30px; font-weight: 600;
+  letter-spacing: -.5px; color: var(--text);
+}
+.psub {
+  font-family: var(--mono);
+  font-size: 11px; color: var(--text-muted);
+  margin-top: 4px; letter-spacing: .05em;
+}
+
+/* ════════════════════════════════════════
+   GLASS CARDS
+════════════════════════════════════════ */
+.card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r);
+  padding: 24px;
+  transition: border-color .25s, box-shadow .25s;
+}
+.card:hover {
+  border-color: rgba(201,147,58,.22);
+  box-shadow: 0 4px 24px rgba(0,0,0,.3), var(--shadow-amber);
+}
+.csm {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+}
+
+/* ════════════════════════════════════════
+   STAT CARDS
+════════════════════════════════════════ */
+.sg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px; margin-bottom: 24px;
+}
+.sc {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r);
+  padding: 22px 24px;
+  position: relative; overflow: hidden;
+  transition: all .3s;
+}
+.sc::before {
+  content:'';
+  position: absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, var(--amber), transparent);
+  opacity: 0; transition: opacity .3s;
+}
+.sc:hover { transform: translateY(-2px); box-shadow: var(--shadow) }
+.sc:hover::before { opacity:1 }
+
+.slb {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--text-muted); letter-spacing: .14em;
+  margin-bottom: 12px;
+}
+.sv {
+  font-size: 36px; font-weight: 800;
+  letter-spacing: -2px; color: var(--text);
+  font-family: var(--serif);
+}
+.sch {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--emerald); margin-top: 6px;
+}
+
+/* ════════════════════════════════════════
+   LAYOUT GRIDS
+════════════════════════════════════════ */
+.g2  { display:grid; grid-template-columns:1fr 1fr; gap:20px }
+.g3  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px }
+
+/* ════════════════════════════════════════
+   BUTTONS
+════════════════════════════════════════ */
+.btn {
+  padding: 10px 20px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; font-family: var(--font); transition: all .2s;
+  letter-spacing: .01em;
+}
+.ba {
+  background: linear-gradient(135deg, var(--amber), #a07020);
+  color: var(--brown-950);
+  box-shadow: 0 2px 12px rgba(201,147,58,.25);
+}
+.ba:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(201,147,58,.4);
+}
+.bo {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--glass-border);
+  color: var(--text-soft);
+}
+.bo:hover {
+  border-color: var(--amber-border);
+  color: var(--amber);
+  background: var(--amber-glow);
+}
+.bd {
+  background: rgba(232,100,122,.06);
+  border: 1px solid rgba(232,100,122,.25);
+  color: var(--rose);
+}
+.bd:hover { background: rgba(232,100,122,.12) }
+.bs { padding: 7px 14px; font-size: 12px }
+.bw { width: 100%; margin-top: 8px }
+
+/* ════════════════════════════════════════
+   FACEBOOK CONNECT
+════════════════════════════════════════ */
+.btn-fb {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 14px;
+  background: var(--fb-blue); border: none; border-radius: 10px;
+  color: #fff; font-size: 14px; font-weight: 700;
+  font-family: var(--font); cursor: pointer; transition: all .25s;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 16px rgba(24,119,242,.3);
+}
+.btn-fb:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(24,119,242,.4);
+}
+.btn-fb svg { width: 20px; height: 20px; fill: #fff; flex-shrink:0 }
+
+/* ════════════════════════════════════════
+   CONNECT BANNER
+════════════════════════════════════════ */
+.conn-banner {
+  background: linear-gradient(135deg, var(--amber-glow), rgba(78,203,141,.05));
+  border: 1px solid var(--amber-border);
+  border-radius: var(--r);
+  padding: 20px 24px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 16px;
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%,100% { box-shadow: 0 0 0 rgba(201,147,58,0) }
+  50%      { box-shadow: 0 0 24px rgba(201,147,58,.1) }
+}
+.conn-banner .icon { font-size: 32px; flex-shrink:0 }
+.conn-banner-text { flex:1 }
+.conn-banner-title { font-size: 15px; font-weight: 700; margin-bottom: 4px }
+.conn-banner-sub { font-family: var(--mono); font-size: 11px; color: var(--text-muted) }
+
+/* ════════════════════════════════════════
+   CONNECTED ACCOUNT CARDS
+════════════════════════════════════════ */
+.acc-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm); margin-bottom: 10px;
+  transition: all .2s;
+}
+.acc-card:hover {
+  border-color: var(--amber-border);
+  background: var(--amber-glow);
+}
+.acc-icon {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink:0;
+}
+.acc-icon.fb { background: rgba(24,119,242,.2); border: 1px solid rgba(24,119,242,.3) }
+.acc-icon.ig { background: linear-gradient(135deg,rgba(131,58,180,.2),rgba(253,29,29,.2),rgba(252,176,69,.2)); border: 1px solid rgba(252,176,69,.2) }
+.acc-info { flex:1 }
+.acc-name { font-size: 14px; font-weight: 600; margin-bottom: 2px }
+.acc-id   { font-family: var(--mono); font-size: 11px; color: var(--text-muted) }
+.acc-actions { display: flex; gap: 8px; align-items: center }
+
+/* ════════════════════════════════════════
+   FORMS
+════════════════════════════════════════ */
+.fg { margin-bottom: 16px }
+.fg label {
+  display: block; font-family: var(--mono);
+  font-size: 10px; color: var(--text-muted);
+  margin-bottom: 6px; letter-spacing: .1em;
+}
+.fg input, .fg select, .fg textarea {
+  width: 100%; padding: 11px 14px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px; color: var(--text);
+  font-size: 13px; font-family: var(--mono); outline: none;
+  transition: all .25s;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus {
+  border-color: var(--amber-border);
+  background: rgba(201,147,58,.04);
+  box-shadow: 0 0 0 3px rgba(201,147,58,.07);
+}
+.fg textarea { resize: vertical; min-height: 100px; line-height: 1.6 }
+.fg select option { background: var(--brown-800) }
+.fr { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+
+/* ════════════════════════════════════════
+   TABLES
+════════════════════════════════════════ */
+.tw { overflow-x: auto; border-radius: var(--r-sm) }
+table { width: 100%; border-collapse: collapse }
+thead th {
+  text-align: left; font-family: var(--mono);
+  font-size: 9px; color: var(--text-muted);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  letter-spacing: .12em; background: rgba(0,0,0,.15);
+}
+tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .15s }
+tbody tr:hover { background: var(--amber-glow) }
+tbody td { padding: 12px 16px; font-size: 12px; font-family: var(--mono); color: var(--text-soft) }
+
+/* ════════════════════════════════════════
+   BADGES
+════════════════════════════════════════ */
+.badge {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 20px; font-size: 10px;
+  font-family: var(--mono); font-weight: 500;
+}
+.b-gr  { background: rgba(78,203,141,.12); color: var(--emerald);   border: 1px solid rgba(78,203,141,.2) }
+.b-pu  { background: var(--amber-glow);    color: var(--amber);     border: 1px solid var(--amber-border) }
+.b-rd  { background: rgba(232,100,122,.1); color: var(--rose);      border: 1px solid rgba(232,100,122,.2) }
+.b-gy  { background: rgba(107,94,84,.15);  color: var(--text-muted);border: 1px solid rgba(107,94,84,.2) }
+.b-wn  { background: rgba(240,192,96,.1);  color: var(--gold);      border: 1px solid rgba(240,192,96,.2) }
+.b-bl  { background: rgba(91,168,216,.1);  color: var(--sky);       border: 1px solid rgba(91,168,216,.2) }
+
+/* ════════════════════════════════════════
+   SECTION HEADER
+════════════════════════════════════════ */
+.sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px }
+.stitle { font-size: 15px; font-weight: 700; color: var(--text) }
+
+.divider { border: none; border-top: 1px solid var(--glass-border); margin: 20px 0 }
+
+.empty {
+  text-align: center; padding: 48px 24px;
+  color: var(--text-muted); font-family: var(--mono); font-size: 12px;
+}
+.empty .ei { font-size: 36px; margin-bottom: 12px; opacity: .5 }
+
+/* ════════════════════════════════════════
+   AGENT CHAT
+════════════════════════════════════════ */
+.agent-wrap {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  height: calc(100vh - 160px);
+}
+.chat-box {
+  display: flex; flex-direction: column;
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r); overflow: hidden;
+}
+.chat-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex; align-items: center; gap: 10px;
+}
+.chat-header-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--emerald);
+  box-shadow: 0 0 8px var(--emerald);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,100%{opacity:1} 50%{opacity:.3}
+}
+.chat-header-title { font-size: 13px; font-weight: 700; color: var(--text) }
+.chat-header-sub { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-left: auto }
+
+.chat-msgs {
+  flex:1; overflow-y: auto; padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.msg {
+  max-width: 82%;
+  padding: 12px 16px; border-radius: 14px;
+  font-size: 13px; line-height: 1.6;
+  animation: msgIn .25s ease;
+}
+@keyframes msgIn {
+  from { opacity:0; transform:translateY(6px) }
+  to   { opacity:1; transform:translateY(0) }
+}
+.mu {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--amber), #a07020);
+  color: var(--brown-950); font-weight: 500;
+  border-bottom-right-radius: 4px;
+}
+.ma {
+  align-self: flex-start;
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--glass-border);
+  border-bottom-left-radius: 4px;
+}
+.ml {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--text-muted); margin-bottom: 5px; letter-spacing: .08em;
+}
+.chat-ir {
+  display: flex; gap: 10px; padding: 16px;
+  border-top: 1px solid var(--glass-border);
+  background: rgba(0,0,0,.1);
+}
+.chat-in {
+  flex:1; padding: 11px 16px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px; color: var(--text);
+  font-size: 13px; font-family: var(--mono); outline: none;
+  transition: all .25s;
+}
+.chat-in:focus {
+  border-color: var(--amber-border);
+  box-shadow: 0 0 0 3px rgba(201,147,58,.07);
+}
+.aside-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r); padding: 20px;
+  overflow-y: auto;
+}
+.qcmd {
+  padding: 10px 14px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 9px; font-size: 12px;
+  cursor: pointer; margin-bottom: 8px;
+  font-family: var(--mono); color: var(--text-soft);
+  transition: all .2s; line-height: 1.4;
+}
+.qcmd:hover {
+  border-color: var(--amber-border);
+  color: var(--amber); background: var(--amber-glow);
+  transform: translateX(3px);
+}
+.tchip {
+  display: inline-block; padding: 4px 10px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px; font-size: 10px;
+  font-family: var(--mono); color: var(--text-muted);
+  margin: 3px; cursor: pointer; transition: all .15s;
+}
+.tchip:hover {
+  border-color: var(--amber-border);
+  color: var(--amber); background: var(--amber-glow);
+}
+
+/* ════════════════════════════════════════
+   POSTS
+════════════════════════════════════════ */
+.pcard {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r); padding: 18px; margin-bottom: 12px;
+  transition: all .2s;
+}
+.pcard:hover { border-color: var(--amber-border) }
+
+/* ════════════════════════════════════════
+   DM INBOX
+════════════════════════════════════════ */
+.dm-wrap {
+  display: grid;
+  grid-template-columns: 280px 1fr 290px;
+  height: calc(100vh - 160px); gap: 16px;
+}
+.dm-list {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r); overflow-y: auto;
+}
+.dm-list-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 12px; font-weight: 700; color: var(--text-soft);
+  font-family: var(--mono); letter-spacing: .06em;
+}
+.dm-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  cursor: pointer; transition: all .15s;
+}
+.dm-item:hover, .dm-item.on {
+  background: var(--amber-glow);
+  border-left: 2px solid var(--amber);
+}
+.dn { font-size: 13px; font-weight: 600; margin-bottom: 3px }
+.dp {
+  font-size: 11px; color: var(--text-muted);
+  font-family: var(--mono);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dm-template-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r); padding: 18px;
+  overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+}
+.tpl-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm); padding: 14px;
+}
+.tpl-label {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: .14em; margin-bottom: 12px;
+}
+
+/* ════════════════════════════════════════
+   LEADS KANBAN
+════════════════════════════════════════ */
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.kcol {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r); padding: 14px;
+  min-height: 300px;
+}
+.kt {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: .14em; margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.kt-count {
+  background: rgba(255,255,255,.06);
+  border-radius: 20px; padding: 1px 7px;
+  font-size: 9px;
+}
+.lcard {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 9px; padding: 10px 12px;
+  margin-bottom: 8px; transition: all .2s; cursor: pointer;
+}
+.lcard:hover {
+  border-color: var(--amber-border);
+  background: var(--amber-glow);
+  transform: translateY(-1px);
+}
+.ln { font-size: 12px; font-weight: 600; margin-bottom: 3px }
+.li { font-size: 10px; color: var(--text-muted); font-family: var(--mono) }
+
+/* ════════════════════════════════════════
+   USAGE BAR
+════════════════════════════════════════ */
+.ubar {
+  height: 6px; background: rgba(255,255,255,.06);
+  border-radius: 3px; overflow: hidden; margin-top: 8px;
+}
+.ufill {
+  height: 100%; border-radius: 3px;
+  transition: width .8s cubic-bezier(.22,1,.36,1);
+}
+
+/* ════════════════════════════════════════
+   LOADING DOTS
+════════════════════════════════════════ */
+.ld { display: inline-flex; gap: 5px; align-items: center }
+.ld span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--amber);
+  animation: ldp 1.4s ease-in-out infinite;
+}
+.ld span:nth-child(2){animation-delay:.2s}
+.ld span:nth-child(3){animation-delay:.4s}
+@keyframes ldp {
+  0%,100%{opacity:.25;transform:scale(.6)}
+  50%    {opacity:1;  transform:scale(1)}
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+#toast {
+  position: fixed; bottom: 28px; right: 28px; z-index: 999;
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px; padding: 14px 20px;
+  font-family: var(--mono); font-size: 12px;
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s cubic-bezier(.22,1,.36,1);
+  box-shadow: var(--shadow);
+  max-width: 320px;
+}
+#toast.show  { transform: translateY(0); opacity:1 }
+#toast.ok    { border-color: rgba(78,203,141,.35); color: var(--emerald) }
+#toast.err   { border-color: rgba(232,100,122,.35); color: var(--rose) }
+
+/* ════════════════════════════════════════
+   SCROLLBAR
+════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px }
+::-webkit-scrollbar-track { background: transparent }
+::-webkit-scrollbar-thumb { background: rgba(201,147,58,.2); border-radius: 4px }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,147,58,.4) }
+
+/* ════════════════════════════════════════
+   RESPONSIVE — DESKTOP PRIORITY
+════════════════════════════════════════ */
+@media (max-width: 1200px) {
+  .kanban { grid-template-columns: repeat(3,1fr) }
+  .sg { grid-template-columns: repeat(2,1fr) }
+  .dm-wrap { grid-template-columns: 260px 1fr }
+  .dm-template-panel { display: none }
+}
+@media (max-width: 900px) {
+  :root { --sidebar-w: 220px }
+  .main { padding: 24px 20px }
+  .agent-wrap { grid-template-columns: 1fr }
+}
+@media (max-width: 700px) {
+  .shell { grid-template-columns: 1fr }
+  .side { display: none }
+  .kanban { grid-template-columns: repeat(2,1fr) }
+  .g2 { grid-template-columns: 1fr }
+  .fr { grid-template-columns: 1fr }
+  .auth-wrap { grid-template-columns: 1fr }
+  .auth-left { display: none }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ AUTH SCREEN ══════════════ -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-left">
+      <div>
+        <div class="auth-brand">Vy<span>nk</span></div>
+        <div class="auth-tagline">// autonomous social media intelligence</div>
+      </div>
+      <div class="auth-features">
+        <div class="feat"><div class="feat-ic">🤖</div><span>AI agent handles every DM automatically</span></div>
+        <div class="feat"><div class="feat-ic">📅</div><span>Schedule posts across Instagram & Facebook</span></div>
+        <div class="feat"><div class="feat-ic">🎯</div><span>CRM pipeline tracks and converts leads</span></div>
+        <div class="feat"><div class="feat-ic">📊</div><span>Real-time analytics & performance insights</span></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:.06em">
+        Trusted by 200+ social media agencies
+      </div>
+    </div>
+    <div class="auth-right">
+      <div class="auth-title">Welcome Back</div>
+      <div class="auth-sub">// sign in to your workspace</div>
+      <div class="tabs">
+        <button class="tab on" id="t-login" onclick="switchTab('login')">Sign In</button>
+        <button class="tab" id="t-reg" onclick="switchTab('reg')">Create Account</button>
+      </div>
+      <div id="f-login">
+        <div class="field"><label>EMAIL ADDRESS</label><input type="email" id="l-email" placeholder="you@company.com" autocomplete="email"></div>
+        <div class="field"><label>PASSWORD</label><input type="password" id="l-pass" placeholder="Enter your password" autocomplete="current-password"></div>
+        <button class="btn-main" onclick="doLogin()">Sign In →</button>
+      </div>
+      <div id="f-reg" style="display:none">
+        <div class="field"><label>EMAIL ADDRESS</label><input type="email" id="r-email" placeholder="you@company.com" autocomplete="email"></div>
+        <div class="field"><label>PASSWORD</label><input type="password" id="r-pass" placeholder="Minimum 8 characters" autocomplete="new-password"></div>
+        <button class="btn-main" onclick="doReg()">Create Account →</button>
+      </div>
+      <div class="auth-err" id="aerr"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="app">
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="logo">Vy<span>nk</span></div>
+
+    <div class="slabel">WORKSPACE</div>
+    <button class="nav on" onclick="go('dash')">
+      <span class="nav-ic">⚡</span>Dashboard
+    </button>
+    <button class="nav" onclick="go('agent')">
+      <span class="nav-ic">🤖</span>AI Agent
+    </button>
+    <button class="nav" onclick="go('posts')">
+      <span class="nav-ic">📅</span>Schedule
+    </button>
+    <button class="nav" onclick="go('dms')">
+      <span class="nav-ic">💬</span>DM Inbox
+    </button>
+
+    <div class="slabel">GROWTH</div>
+    <button class="nav" onclick="go('leads')">
+      <span class="nav-ic">🎯</span>Leads CRM
+    </button>
+    <button class="nav" onclick="go('analytics')">
+      <span class="nav-ic">📊</span>Analytics
+    </button>
+
+    <div class="slabel">ACCOUNT</div>
+    <button class="nav" onclick="go('settings')">
+      <span class="nav-ic">⚙️</span>Settings
+    </button>
+
+    <div class="side-foot">
+      <div class="user-row">
+        <div class="ava" id="ava">U</div>
+        <div class="uinfo">
+          <div id="uemail" class="uemail">—</div>
+          <span id="ptag" class="plan-tag p-basic">basic</span>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="page on" id="pg-dash">
+      <div class="ph">
+        <div>
+          <div class="ptitle">Dashboard</div>
+          <div class="psub">// automation overview — good morning</div>
+        </div>
+        <button class="btn ba" onclick="go('posts')">+ Schedule Post</button>
+      </div>
+
+      <div class="conn-banner" id="no-acc-banner" style="display:none">
+        <div class="icon">🔌</div>
+        <div class="conn-banner-text">
+          <div class="conn-banner-title">Connect Your Social Accounts</div>
+          <div class="conn-banner-sub">Link Instagram & Facebook to enable automation</div>
+        </div>
+        <button class="btn ba" onclick="go('settings')">Connect Now →</button>
+      </div>
+
+      <div class="sg">
+        <div class="sc">
+          <div class="slb">POSTS SCHEDULED</div>
+          <div class="sv" id="s-posts">—</div>
+          <div class="sch">↑ this week</div>
+        </div>
+        <div class="sc">
+          <div class="slb">AI CALLS USED</div>
+          <div class="sv" id="s-ai">—</div>
+          <div class="sch">of daily limit</div>
+        </div>
+        <div class="sc">
+          <div class="slb">DM AUTO-REPLIES</div>
+          <div class="sv" id="s-dms">—</div>
+          <div class="sch">agent handled</div>
+        </div>
+        <div class="sc">
+          <div class="slb">HOT LEADS</div>
+          <div class="sv" id="s-leads">—</div>
+          <div class="sch">ready to close</div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="sh">
+            <div class="stitle">Upcoming Posts</div>
+            <button class="btn bo bs" onclick="go('posts')">View All →</button>
+          </div>
+          <div id="d-queue"><div class="empty"><div class="ei">📅</div>No posts scheduled</div></div>
+        </div>
+        <div class="card">
+          <div class="sh"><div class="stitle">Plan Usage</div></div>
+          <div id="d-usage"><div class="empty"><div class="ei">📊</div>Loading usage data...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AGENT ══ -->
+    <div class="page" id="pg-agent">
+      <div class="ph">
+        <div>
+          <div class="ptitle">AI Agent</div>
+          <div class="psub">// LangGraph-powered autonomous brain</div>
+        </div>
+      </div>
+      <div class="agent-wrap">
+        <div class="chat-box">
+          <div class="chat-header">
+            <div class="chat-header-dot"></div>
+            <div class="chat-header-title">Vynk Intelligence</div>
+            <div class="chat-header-sub">llama-3.3-70b · online</div>
+          </div>
+          <div class="chat-msgs" id="chat-msgs">
+            <div class="msg ma">
+              <div class="ml">VYNK AGENT</div>
+              Hey! 👋 I'm your AI agent. Tell me what to do — schedule posts, manage leads, generate content, or run your full social media strategy. What's the mission?
+            </div>
+          </div>
+          <div class="chat-ir">
+            <input class="chat-in" id="agent-in" placeholder="e.g. Schedule 5 posts for this week, analyze my leads..." onkeydown="if(event.key==='Enter')sendMsg()">
+            <button class="btn ba" onclick="sendMsg()">Send →</button>
+          </div>
+        </div>
+        <div class="aside-panel">
+          <div class="stitle" style="margin-bottom:14px;font-size:13px">Quick Commands</div>
+          <div class="qcmd" onclick="setIn(this)">📅 Create content calendar for this week</div>
+          <div class="qcmd" onclick="setIn(this)">🎯 Show hot leads ready to convert</div>
+          <div class="qcmd" onclick="setIn(this)">✍️ Write 3 Instagram captions for my products</div>
+          <div class="qcmd" onclick="setIn(this)">📊 Give me an analytics summary</div>
+          <div class="qcmd" onclick="setIn(this)">🤖 Set up auto-replies for common DM questions</div>
+          <div class="qcmd" onclick="setIn(this)">🔥 Generate 10 viral post ideas</div>
+          <hr class="divider">
+          <div class="stitle" style="margin-bottom:12px;font-size:12px;color:var(--text-muted)">Available Tools</div>
+          <span class="tchip">schedule_post</span>
+          <span class="tchip">generate_caption</span>
+          <span class="tchip">analyse_image</span>
+          <span class="tchip">dm_auto_reply</span>
+          <span class="tchip">lead_crm_update</span>
+          <span class="tchip">get_analytics</span>
+          <span class="tchip">bulk_schedule</span>
+          <span class="tchip">content_calendar</span>
+          <span class="tchip">find_hot_leads</span>
+          <span class="tchip">ghosting_leads</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ POSTS ══ -->
+    <div class="page" id="pg-posts">
+      <div class="ph">
+        <div>
+          <div class="ptitle">Schedule Posts</div>
+          <div class="psub">// queue content for Instagram & Facebook</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="stitle" style="margin-bottom:20px">New Post</div>
+          <div class="fg"><label>CAPTION</label><textarea id="p-cap" placeholder="Write your caption..."></textarea></div>
+          <div class="fg"><label>HASHTAGS</label><input type="text" id="p-tags" placeholder="#brand #product #launch"></div>
+          <div class="fr">
+            <div class="fg"><label>PLATFORM</label>
+              <select id="p-plat">
+                <option value="instagram">Instagram</option>
+                <option value="facebook">Facebook</option>
+                <option value="both">Both Platforms</option>
+              </select>
+            </div>
+            <div class="fg"><label>SCHEDULED TIME</label><input type="datetime-local" id="p-time"></div>
+          </div>
+          <button class="btn ba bw" onclick="schedPost()">Schedule Post →</button>
+
+          <hr class="divider">
+
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <span style="font-size:16px">✨</span>
+            <div class="stitle" style="font-size:13px">AI Caption Generator</div>
+          </div>
+          <div class="fg"><label>DESCRIBE YOUR POST</label>
+            <input type="text" id="p-prompt" placeholder="e.g. New product launch, summer sale, behind the scenes">
+          </div>
+          <div class="fr">
+            <div class="fg"><label>TONE</label>
+              <select id="p-tone">
+                <option value="engaging">Engaging</option>
+                <option value="professional">Professional</option>
+                <option value="funny">Funny</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div class="fg"><label>PLATFORM</label>
+              <select id="p-cplat">
+                <option value="instagram">Instagram</option>
+                <option value="facebook">Facebook</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn bo bw" onclick="genCaption()">✨ Generate Caption</button>
+        </div>
+
+        <div class="card">
+          <div class="sh">
+            <div class="stitle">Post Queue</div>
+            <button class="btn bo bs" onclick="loadQueue()">↻ Refresh</button>
+          </div>
+          <div id="p-queue"><div class="empty"><div class="ei">📅</div>Queue is empty</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DMs ══ -->
+    <div class="page" id="pg-dms">
+      <div class="ph">
+        <div>
+          <div class="ptitle">DM Inbox</div>
+          <div class="psub">// AI-managed conversations</div>
+        </div>
+      </div>
+      <div class="dm-wrap">
+        <div class="dm-list">
+          <div class="dm-list-header">CONVERSATIONS</div>
+          <div id="dm-list-inner"><div class="empty"><div class="ei">💬</div>No conversations yet</div></div>
+        </div>
+
+        <div class="chat-box">
+          <div class="chat-header">
+            <div class="chat-header-dot" style="background:var(--sky);box-shadow:0 0 8px var(--sky)"></div>
+            <div class="chat-header-title" id="dm-chat-name">Select a conversation</div>
+          </div>
+          <div class="chat-msgs" id="dm-msgs">
+            <div class="empty" style="margin:auto"><div class="ei">👈</div>Select a chat to view messages</div>
+          </div>
+          <div class="chat-ir">
+            <input class="chat-in" id="dm-in" placeholder="Type a manual reply...">
+            <button class="btn ba" onclick="sendDM()">Send →</button>
+          </div>
+        </div>
+
+        <div class="dm-template-panel">
+          <div class="stitle" style="font-size:13px">Message Templates</div>
+
+          <div class="tpl-card">
+            <div class="tpl-label" style="color:var(--amber)">⚡ QUICK REPLY BUTTON</div>
+            <div class="fg"><label>MESSAGE TEXT</label>
+              <textarea id="qr-text" placeholder="Want to see our product? Click below..." style="min-height:70px"></textarea>
+            </div>
+            <div class="fg"><label>BUTTON LABEL</label>
+              <input type="text" id="qr-btn" placeholder="Yes, show me! 👀">
+            </div>
+            <div class="fg"><label>PAYLOAD ID</label>
+              <input type="text" id="qr-payload" placeholder="SHOW_PRODUCT">
+            </div>
+            <button class="btn ba bw" onclick="sendQuickReply()" style="font-size:12px">Send Quick Reply →</button>
+          </div>
+
+          <div class="tpl-card">
+            <div class="tpl-label" style="color:var(--sky)">🔗 URL BUTTON CARD</div>
+            <div class="fg"><label>CARD TITLE</label>
+              <input type="text" id="ub-title" placeholder="Check out our Premium Plan">
+            </div>
+            <div class="fg"><label>BUTTON LABEL</label>
+              <input type="text" id="ub-btntitle" placeholder="Buy Now 🚀">
+            </div>
+            <div class="fg"><label>URL</label>
+              <input type="url" id="ub-url" placeholder="https://yoursite.com/buy">
+            </div>
+            <button class="btn bo bw" onclick="sendUrlButton()" style="font-size:12px;border-color:rgba(91,168,216,.3);color:var(--sky)">Send URL Card →</button>
+          </div>
+
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-align:center;padding:8px;line-height:1.6">
+            Select a conversation first, then send a template
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ LEADS ══ -->
+    <div class="page" id="pg-leads">
+      <div class="ph">
+        <div>
+          <div class="ptitle">Leads CRM</div>
+          <div class="psub">// visual sales pipeline</div>
+        </div>
+        <button class="btn bo bs" onclick="loadLeads()">↻ Refresh</button>
+      </div>
+      <div class="kanban">
+        <div class="kcol">
+          <div class="kt" style="color:var(--text-muted)">
+            AWARENESS
+            <span class="kt-count" id="cnt-awareness">0</span>
+          </div>
+          <div id="kc-awareness"></div>
+        </div>
+        <div class="kcol">
+          <div class="kt" style="color:var(--sky)">
+            INTEREST
+            <span class="kt-count" id="cnt-interest">0</span>
+          </div>
+          <div id="kc-interest"></div>
+        </div>
+        <div class="kcol">
+          <div class="kt" style="color:var(--amber)">
+            CONSIDERATION
+            <span class="kt-count" id="cnt-consideration">0</span>
+          </div>
+          <div id="kc-consideration"></div>
+        </div>
+        <div class="kcol">
+          <div class="kt" style="color:var(--gold)">
+            INTENT
+            <span class="kt-count" id="cnt-intent">0</span>
+          </div>
+          <div id="kc-intent"></div>
+        </div>
+        <div class="kcol">
+          <div class="kt" style="color:var(--emerald)">
+            CONVERTED
+            <span class="kt-count" id="cnt-converted">0</span>
+          </div>
+          <div id="kc-converted"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ANALYTICS ══ -->
+    <div class="page" id="pg-analytics">
+      <div class="ph">
+        <div>
+          <div class="ptitle">Analytics</div>
+          <div class="psub">// performance & growth overview</div>
+        </div>
+        <button class="btn bo bs" onclick="loadAnalytics()">↻ Refresh</button>
+      </div>
+      <div class="sg" style="grid-template-columns:repeat(4,1fr)">
+        <div class="sc"><div class="slb">TOTAL POSTS</div><div class="sv" id="an-p">—</div></div>
+        <div class="sc"><div class="slb">TOTAL LEADS</div><div class="sv" id="an-l">—</div></div>
+        <div class="sc"><div class="slb">DM REPLIES</div><div class="sv" id="an-d">—</div></div>
+        <div class="sc"><div class="slb">CONVERSION RATE</div><div class="sv" id="an-c">—</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="sh"><div class="stitle">Post History</div></div>
+          <div id="an-pl"><div class="empty"><div class="ei">📊</div>No post data yet</div></div>
+        </div>
+        <div class="card">
+          <div class="sh"><div class="stitle">Lead Pipeline Breakdown</div></div>
+          <div id="an-ll"><div class="empty"><div class="ei">🎯</div>No lead data yet</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="page" id="pg-settings">
+      <div class="ph">
+        <div>
+          <div class="ptitle">Settings</div>
+          <div class="psub">// connect accounts & manage your catalog</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="sh">
+          <div>
+            <div class="stitle">Social Accounts</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-top:3px">
+              Connect Instagram & Facebook to enable posting and DM automation
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-fb" onclick="connectFacebook()">
+          <svg viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Connect Facebook & Instagram
+        </button>
+
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-align:center;margin-bottom:16px;letter-spacing:.04em">
+          Facebook login page will open → select your page → done ✓
+        </div>
+
+        <details style="margin-bottom:16px">
+          <summary style="font-family:var(--mono);font-size:11px;color:var(--text-muted);cursor:pointer;padding:10px 0;border-top:1px solid var(--glass-border);list-style:none;display:flex;align-items:center;gap:8px">
+            <span style="color:var(--gold)">▸</span>
+            OAuth not working? Connect manually with access token
+          </summary>
+          <div style="margin-top:14px;padding:16px;background:rgba(255,255,255,.03);border-radius:10px;border:1px solid var(--glass-border)">
+            <div class="fg"><label>PLATFORM</label>
+              <select id="mt-plat"><option value="facebook">Facebook Page</option><option value="instagram">Instagram Business</option></select>
+            </div>
+            <div class="fg"><label>PAGE ACCESS TOKEN</label>
+              <input type="password" id="mt-token" placeholder="EAAxxxxxxxx...">
+            </div>
+            <div class="fg"><label>PAGE ID / ACCOUNT ID</label>
+              <input type="text" id="mt-pageid" placeholder="e.g. 123456789012345">
+            </div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:12px;line-height:1.7">
+              Get token from: <span style="color:var(--amber)">developers.facebook.com</span> → Graph API Explorer → Generate Token
+            </div>
+            <button class="btn ba bw" onclick="manualConnect()">🔗 Connect Manually</button>
+          </div>
+        </details>
+
+        <hr class="divider">
+        <div class="sh">
+          <div class="stitle" style="font-size:14px">Connected Accounts</div>
+          <button class="btn bo bs" onclick="loadPages()">↻ Refresh</button>
+        </div>
+        <div id="pages-list">
+          <div class="empty" style="padding:24px"><div class="ei">📱</div>No accounts connected yet</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="stitle" style="margin-bottom:20px">🛍 Product Catalog</div>
+        <div class="fr" style="align-items:end;flex-wrap:wrap;gap:14px;margin-bottom:16px">
+          <div class="fg" style="min-width:160px"><label>PRODUCT NAME</label><input type="text" id="pn" placeholder="e.g. Premium Plan"></div>
+          <div class="fg" style="min-width:110px"><label>PRICE</label><input type="text" id="pp" placeholder="₹999/mo"></div>
+          <div class="fg" style="flex:1;min-width:160px"><label>DESCRIPTION</label><input type="text" id="pd" placeholder="Short description"></div>
+          <button class="btn ba" style="margin-bottom:16px;white-space:nowrap" onclick="addProduct()">Add Product</button>
+        </div>
+        <div id="prod-list">
+          <div style="color:var(--text-muted);font-family:var(--mono);font-size:12px">No products added yet</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'https://ksksysy540-vynk-autonoius.hf.space';
+let TOKEN = localStorage.getItem('vt');
+let ME = null;
+let DM_CID = null;
+
+const $ = id => document.getElementById(id);
+const toast = (m, t='ok') => {
+  const el = $('toast');
+  el.textContent = m; el.className = `show ${t}`;
+  setTimeout(() => el.className = '', 3500);
+};
+
+async function api(path, opts={}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(TOKEN ? {Authorization: `Bearer ${TOKEN}`} : {}),
+      ...(opts.headers || {})
+    }
+  });
+  const d = await res.json();
+  if (!res.ok) throw new Error(d.detail || 'API Error');
+  return d;
+}
+
+// ── AUTH ──────────────────────────────────────────────
+function switchTab(t) {
+  $('t-login').classList.toggle('on', t==='login');
+  $('t-reg').classList.toggle('on', t==='reg');
+  $('f-login').style.display = t==='login' ? '' : 'none';
+  $('f-reg').style.display   = t==='reg'   ? '' : 'none';
+}
+
+async function doLogin() {
+  $('aerr').textContent = '';
+  try {
+    const d = await api('/auth/login', {method:'POST', body:JSON.stringify({email:$('l-email').value, password:$('l-pass').value})});
+    TOKEN = d.access_token;
+    localStorage.setItem('vt', TOKEN);
+    await boot();
+  } catch(e) { $('aerr').textContent = e.message; }
+}
+
+async function doReg() {
+  $('aerr').textContent = '';
+  try {
+    await api('/auth/register', {method:'POST', body:JSON.stringify({email:$('r-email').value, password:$('r-pass').value})});
+    $('l-email').value = $('r-email').value;
+    $('l-pass').value  = $('r-pass').value;
+    switchTab('login');
+    toast('Account created successfully!');
+    await doLogin();
+  } catch(e) { $('aerr').textContent = e.message; }
+}
+
+function logout() {
+  localStorage.removeItem('vt'); TOKEN=null; ME=null;
+  $('auth-screen').style.display='flex';
+  $('app').style.display='none';
+}
+
+async function boot() {
+  try {
+    ME = await api('/auth/me');
+    $('auth-screen').style.display = 'none';
+    $('app').style.display = 'block';
+    $('uemail').textContent = ME.email || '';
+    $('ava').textContent    = (ME.email || 'U')[0].toUpperCase();
+    const plan = ME.plan || 'basic';
+    $('ptag').textContent = plan.toUpperCase();
+    $('ptag').className   = `plan-tag p-${plan}`;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('oauth_success')) {
+      toast(`✓ ${params.get('pages') || '1'} account(s) connected successfully`);
+      window.history.replaceState({}, '', window.location.pathname);
+      go('settings');
+    } else if (params.get('oauth_error')) {
+      toast(`Connection failed: ${params.get('oauth_error')}`, 'err');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    loadDash();
+  } catch(e) { console.error(e); }
+}
+
+// ── NAV ───────────────────────────────────────────────
+function go(p) {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.nav').forEach(el=>el.classList.remove('on'));
+  $('pg-'+p)?.classList.add('on');
+  document.querySelectorAll('.nav').forEach(el=>{
+    if(el.getAttribute('onclick')?.includes(`'${p}'`)) el.classList.add('on');
+  });
+  ({
+    dash:      loadDash,
+    posts:     loadQueue,
+    dms:       loadDMs,
+    leads:     loadLeads,
+    analytics: loadAnalytics,
+    settings:  ()=>{ loadPages(); loadProducts(); }
+  })[p]?.();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+async function loadDash() {
+  try {
+    const u = await api('/settings/usage');
+    const used=u.used||{}, lim=u.limits||{};
+    $('s-posts').textContent = used.posts ?? 0;
+    $('s-ai').textContent    = used.ai_calls ?? 0;
+    $('s-dms').textContent   = used.dm_replies ?? 0;
+    $('d-usage').innerHTML = ['posts','ai_calls','dm_replies'].map(k=>{
+      const uc=used[k]||0, lc=lim[k]||1, pct=Math.min(100,Math.round(uc/lc*100));
+      const col = pct>90?'var(--rose)' : pct>70?'var(--gold)' : 'var(--amber)';
+      return `<div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;margin-bottom:6px">
+          <span style="color:var(--text-muted)">${k.replace('_',' ').toUpperCase()}</span>
+          <span style="color:var(--text-soft)">${uc} / ${lc}</span>
+        </div>
+        <div class="ubar"><div class="ufill" style="width:${pct}%;background:${col}"></div></div>
+      </div>`;
+    }).join('');
+  } catch(e){}
+
+  try {
+    const pages = await api('/auth/facebook/pages');
+    $('no-acc-banner').style.display = pages.length ? 'none' : 'flex';
+  } catch(e){ $('no-acc-banner').style.display='flex'; }
+
+  try {
+    const q = await api('/posts/queue');
+    $('d-queue').innerHTML = q.length
+      ? q.slice(0,3).map(p=>`
+          <div class="csm" style="margin-bottom:10px;cursor:pointer" onclick="go('posts')">
+            <div style="font-size:12.5px;margin-bottom:6px;line-height:1.5;color:var(--text)">${(p.caption||'').slice(0,80)}...</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="badge b-wn">${(p.platforms||[]).join(' + ')}</span>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">🕐 ${new Date(p.scheduled_time).toLocaleString()}</span>
+            </div>
+          </div>`).join('')
+      : '<div class="empty"><div class="ei">📅</div>No posts scheduled</div>';
+  } catch(e){}
+
+  try {
+    const l = await api('/leads/hot');
+    $('s-leads').textContent = l.length || 0;
+  } catch(e){ $('s-leads').textContent='0'; }
+}
+
+// ── OAUTH ─────────────────────────────────────────────
+function connectFacebook() {
+  if (!TOKEN) return toast('Please sign in first', 'err');
+  window.location.href = `${API}/auth/facebook/connect?token=${TOKEN}`;
+}
+
+async function manualConnect() {
+  const token=$('mt-token').value.trim(), pageId=$('mt-pageid').value.trim(), platform=$('mt-plat').value;
+  if (!token||!pageId) return toast('Token and Page ID are required', 'err');
+  toast('Verifying token...');
+  try {
+    await api('/auth/facebook/token', {method:'POST', body:JSON.stringify({access_token:token, page_id:pageId, platform})});
+    toast('✓ Account connected successfully');
+    $('mt-token').value=''; $('mt-pageid').value='';
+    loadPages();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function loadPages() {
+  try {
+    const pages = await api('/auth/facebook/pages');
+    if (!pages.length) {
+      $('pages-list').innerHTML='<div class="empty" style="padding:24px"><div class="ei">📱</div>No accounts connected yet</div>';
+      return;
+    }
+    $('pages-list').innerHTML = pages.map(p=>`
+      <div class="acc-card">
+        <div class="acc-icon ${p.instagram_account_id?'ig':'fb'}">${p.instagram_account_id?'📸':'📘'}</div>
+        <div class="acc-info">
+          <div class="acc-name">${p.page_name||p.page_id}</div>
+          <div class="acc-id">
+            FB: ${p.page_id}
+            ${p.instagram_account_id
+              ? `&nbsp;&nbsp;IG: ${p.instagram_account_id}`
+              : '<span style="color:var(--gold);font-size:10px"> · No Instagram linked</span>'}
+          </div>
+        </div>
+        <div class="acc-actions">
+          <span class="badge b-gr">✓ Active</span>
+          <button class="btn bd bs" onclick="disconnectPage('${p.page_id}')">Remove</button>
+        </div>
+      </div>`).join('');
+  } catch(e){}
+}
+
+async function disconnectPage(pid) {
+  try {
+    await api('/auth/facebook/pages/'+pid, {method:'DELETE'});
+    toast('Account disconnected');
+    loadPages();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+// ── AGENT ─────────────────────────────────────────────
+function setIn(el) { $('agent-in').value=el.textContent.replace(/^[\S]+\s/,''); $('agent-in').focus(); }
+
+async function sendMsg() {
+  const inp=$('agent-in'), msg=inp.value.trim();
+  if (!msg) return;
+  inp.value='';
+  const box=$('chat-msgs');
+  box.innerHTML+=`<div class="msg mu">${msg}</div>`;
+  box.innerHTML+=`<div class="msg ma" id="think"><div class="ml">VYNK AGENT</div><div class="ld"><span></span><span></span><span></span></div></div>`;
+  box.scrollTop=box.scrollHeight;
+  try {
+    const r = await api('/ai/agent', {method:'POST', body:JSON.stringify({command:msg})});
+    $('think')?.remove();
+    box.innerHTML+=`<div class="msg ma"><div class="ml">VYNK AGENT</div>${(r.response||r.result||'Task completed.').replace(/\n/g,'<br>')}</div>`;
+  } catch(e) {
+    $('think')?.remove();
+    box.innerHTML+=`<div class="msg ma" style="color:var(--rose)">⚠ ${e.message}</div>`;
+  }
+  box.scrollTop=box.scrollHeight;
+}
+
+// ── POSTS ─────────────────────────────────────────────
+async function schedPost() {
+  const cap=$('p-cap').value, time=$('p-time').value;
+  if (!cap||!time) return toast('Caption and time are required', 'err');
+  const plat=$('p-plat').value;
+  try {
+    await api('/posts/schedule', {method:'POST', body:JSON.stringify({
+      caption:cap, hashtags:$('p-tags').value,
+      platforms: plat==='both'?['facebook','instagram']:[plat],
+      scheduled_time: new Date(time).toISOString()
+    })});
+    toast('Post scheduled! 🎉');
+    $('p-cap').value=''; $('p-tags').value='';
+    loadQueue();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function genCaption() {
+  const prompt=$('p-prompt').value;
+  if (!prompt) return toast('Please describe your post', 'err');
+  toast('Generating caption...');
+  try {
+    const r = await api('/ai/caption', {method:'POST', body:JSON.stringify({prompt, tone:$('p-tone').value, platform:$('p-cplat').value})});
+    $('p-cap').value = r.caption||'';
+    toast('Caption generated ✨');
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function loadQueue() {
+  try {
+    const q = await api('/posts/queue');
+    $('p-queue').innerHTML = q.length
+      ? q.map(p=>`
+          <div class="pcard">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <span class="badge b-wn">${(p.platforms||[]).join(' + ')}</span>
+              <span class="badge b-gy">${p.status}</span>
+            </div>
+            <div style="font-size:12.5px;margin-bottom:10px;line-height:1.6;color:var(--text-soft)">${(p.caption||'').slice(0,120)}...</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">🕐 ${new Date(p.scheduled_time).toLocaleString()}</span>
+              <button class="btn bd bs" onclick="delPost('${p.id}')">Remove</button>
+            </div>
+          </div>`).join('')
+      : '<div class="empty"><div class="ei">📅</div>Queue is empty</div>';
+  } catch(e){}
+}
+
+async function delPost(id) {
+  try { await api('/posts/queue/'+id, {method:'DELETE'}); toast('Post removed'); loadQueue(); }
+  catch(e){ toast(e.message,'err'); }
+}
+
+// ── DMs ───────────────────────────────────────────────
+async function loadDMs() {
+  try {
+    const inbox = await api('/dm/inbox');
+    if (!inbox.length) return;
+    $('dm-list-inner').innerHTML = inbox.map(dm=>`
+      <div class="dm-item" onclick="openDM('${dm.customer_id}','${dm.customer_name||dm.customer_id}',this)">
+        <div class="dn">${dm.customer_name||dm.customer_id}</div>
+        <div class="dp">${dm.last_message||'—'}</div>
+      </div>`).join('');
+  } catch(e){}
+}
+
+async function openDM(cid, name, el) {
+  DM_CID=cid;
+  document.querySelectorAll('.dm-item').forEach(d=>d.classList.remove('on'));
+  el?.classList.add('on');
+  if($('dm-chat-name')) $('dm-chat-name').textContent = name;
+  try {
+    const c = await api('/dm/conversation/'+cid);
+    const box=$('dm-msgs');
+    box.innerHTML = (c.messages||[]).map(m=>`
+      <div class="msg ${m.role==='user'?'mu':'ma'}">
+        <div class="ml">${m.role==='user'?name:'VYNK AI'}</div>
+        ${m.content}
+      </div>`).join('') || '<div class="empty" style="margin:auto"><div class="ei">💬</div>No messages</div>';
+    box.scrollTop=box.scrollHeight;
+  } catch(e){}
+}
+
+async function sendDM() {
+  if (!DM_CID) return toast('Select a conversation first', 'err');
+  const msg=$('dm-in').value.trim();
+  if (!msg) return;
+  try {
+    await api('/dm/send', {method:'POST', body:JSON.stringify({customer_id:DM_CID, message:msg})});
+    $('dm-in').value=''; toast('Message sent');
+    openDM(DM_CID,'');
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function sendQuickReply() {
+  if (!DM_CID) return toast('Select a conversation first', 'err');
+  const text=$('qr-text').value.trim(), btnTitle=$('qr-btn').value.trim(), payload=$('qr-payload').value.trim()||'QR_ACTION';
+  if (!text||!btnTitle) return toast('Message text and button label are required', 'err');
+  try {
+    await api('/dm/template/quick_reply', {method:'POST', body:JSON.stringify({customer_id:DM_CID, text, button_title:btnTitle, payload})});
+    toast('Quick Reply sent ⚡');
+    $('qr-text').value=''; $('qr-btn').value=''; $('qr-payload').value='';
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function sendUrlButton() {
+  if (!DM_CID) return toast('Select a conversation first', 'err');
+  const title=$('ub-title').value.trim(), btnTitle=$('ub-btntitle').value.trim(), url=$('ub-url').value.trim();
+  if (!title||!btnTitle||!url) return toast('All fields are required', 'err');
+  try {
+    await api('/dm/template/url_button', {method:'POST', body:JSON.stringify({customer_id:DM_CID, title, button_title:btnTitle, url})});
+    toast('URL Card sent 🚀');
+    $('ub-title').value=''; $('ub-btntitle').value=''; $('ub-url').value='';
+  } catch(e){ toast(e.message,'err'); }
+}
+
+// ── LEADS ─────────────────────────────────────────────
+async function loadLeads() {
+  try {
+    const leads = await api('/leads/kanban');
+    ['awareness','interest','consideration','intent','converted'].forEach(s=>{
+      const el=$('kc-'+s), items=leads[s]||[];
+      const cnt=$('cnt-'+s);
+      if(cnt) cnt.textContent=items.length;
+      el.innerHTML = items.length
+        ? items.map(l=>`
+            <div class="lcard">
+              <div class="ln">${l.customer_name||l.customer_id}</div>
+              <div class="li">${l.platform||'ig'} · ${l.source||'dm'}</div>
+            </div>`).join('')
+        : `<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-align:center;padding:12px">Empty</div>`;
+    });
+  } catch(e){}
+}
+
+// ── ANALYTICS ─────────────────────────────────────────
+async function loadAnalytics() {
+  try {
+    const ov = await api('/analytics/overview');
+    $('an-p').textContent = ov.total_posts || 0;
+    $('an-l').textContent = ov.total_leads || 0;
+    $('an-d').textContent = ov.total_dms   || 0;
+    $('an-c').textContent = (ov.conversion_rate||0) + '%';
+  } catch(e){}
+
+  try {
+    const posts = await api('/analytics/posts');
+    $('an-pl').innerHTML = posts.length
+      ? `<div class="tw"><table>
+          <thead><tr><th>PLATFORM</th><th>STATUS</th><th>DATE</th></tr></thead>
+          <tbody>${posts.slice(0,10).map(p=>`
+            <tr>
+              <td>${p.platform}</td>
+              <td><span class="badge ${p.status==='posted'?'b-gr':'b-rd'}">${p.status}</span></td>
+              <td>${new Date(p.posted_at).toLocaleDateString()}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>`
+      : '<div class="empty"><div class="ei">📊</div>No post data yet</div>';
+  } catch(e){}
+
+  try {
+    const la = await api('/analytics/leads');
+    const pipe = la.pipeline || {};
+    const total = la.total_leads || 1;
+    $('an-ll').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${Object.entries(pipe).map(([stage,count])=>`
+          <div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;margin-bottom:5px">
+              <span style="color:var(--text-muted)">${stage.replace('_',' ').toUpperCase()}</span>
+              <span>${count}</span>
+            </div>
+            <div class="ubar"><div class="ufill" style="width:${Math.round(count/total*100)}%;background:var(--amber)"></div></div>
+          </div>`).join('')}
+      </div>`;
+  } catch(e){}
+}
+
+// ── PRODUCTS ──────────────────────────────────────────
+async function addProduct() {
+  const name=$('pn').value, price=$('pp').value, desc=$('pd').value;
+  if (!name||!price) return toast('Name and price are required', 'err');
+  try {
+    await api('/settings/products', {method:'POST', body:JSON.stringify({name, price, description:desc, is_available:true})});
+    toast('Product added!');
+    $('pn').value=''; $('pp').value=''; $('pd').value='';
+    loadProducts();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function loadProducts() {
+  try {
+    const prods = await api('/settings/products');
+    $('prod-list').innerHTML = prods.length
+      ? prods.map(p=>`
+          <div class="csm" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <div style="font-size:13px;font-weight:600;margin-bottom:3px">${p.name}</div>
+              <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">${p.price}</div>
+            </div>
+            <span class="badge ${p.is_available?'b-gr':'b-gy'}">${p.is_available?'Active':'Hidden'}</span>
+          </div>`).join('')
+      : '<div style="color:var(--text-muted);font-family:var(--mono);font-size:12px">No products added yet</div>';
+  } catch(e){}
+}
+
+// ── BOOT ──────────────────────────────────────────────
+if (TOKEN) boot();
+</script>
+</body>
+</html>
